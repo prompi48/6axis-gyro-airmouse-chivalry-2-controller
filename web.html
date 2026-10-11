@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chivalry AirMouse Controller</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --success-hover: #059669;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-glow: rgba(59, 130, 246, 0.4);
+        }
+
+        /* ธีมโทนร้อน (Combat Mode: Chivalry) */
+        body.chiv-mode {
+            --bg-color: #1a0f0a;
+            --card-bg: #2d1810;
+            --primary: #f97316;
+            --primary-hover: #ea580c;
+            --success: #eab308;
+            --success-hover: #ca8a04;
+            --danger: #dc2626;
+            --accent-glow: rgba(249, 115, 22, 0.5);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-color 0.5s ease;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            width: 100%;
+            max-width: 420px;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            transition: background-color 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        body.chiv-mode .container {
+            box-shadow: 0 10px 30px rgba(249, 115, 22, 0.2);
+            border: 1px solid rgba(249, 115, 22, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .header h2 { margin: 0; font-size: 24px; letter-spacing: 1px; }
+        .header p { color: var(--text-muted); margin: 5px 0 0 0; font-size: 14px; }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0,0,0,0.2);
+            padding: 10px 15px;
+            border-radius: 30px;
+            margin-bottom: 25px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .led {
+            width: 10px; height: 10px; border-radius: 50%;
+            margin-right: 10px; background-color: var(--danger);
+            box-shadow: 0 0 8px var(--danger); transition: all 0.3s ease;
+        }
+
+        .led.connected { background-color: var(--success); box-shadow: 0 0 10px var(--success); }
+        .led.connecting { background-color: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
+
+        button {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            font-size: 16px; font-weight: bold; color: white; cursor: pointer;
+            transition: transform 0.1s, background-color 0.3s, background 0.3s;
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        button:active { transform: scale(0.97); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        #connectBtn { background-color: var(--primary); box-shadow: 0 4px 15px var(--accent-glow); margin-bottom: 20px; }
+        #connectBtn:hover:not(:disabled) { background-color: var(--primary-hover); }
+
+        #disconnectBtn { background-color: var(--danger); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); margin-bottom: 20px; }
+        #disconnectBtn:hover:not(:disabled) { background-color: #dc2626; }
+
+        #toggleModeBtn { background-color: #475569; box-shadow: 0 4px 15px rgba(71, 85, 105, 0.4); margin-bottom: 20px; }
+        #toggleModeBtn:hover:not(:disabled) { background-color: #334155; }
+        body.chiv-mode #toggleModeBtn { background-color: #c2410c; }
+        body.chiv-mode #toggleModeBtn:hover:not(:disabled) { background-color: #9a3412; }
+
+        #sendBtn { background-color: var(--success); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); margin-top: 20px; margin-bottom: 0;}
+        #sendBtn:hover:not(:disabled) { filter: brightness(0.9); }
+
+        #settingsArea {
+            opacity: 0.4; pointer-events: none; transition: opacity 0.4s ease;
+            background: rgba(255, 255, 255, 0.03); padding: 20px;
+            border-radius: 15px; border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        #settingsArea.active { opacity: 1; pointer-events: auto; }
+
+        .input-group { margin-bottom: 20px; }
+        .input-group label {
+            display: block; margin-bottom: 8px; font-size: 14px;
+            color: var(--text-muted); font-weight: 500;
+        }
+
+        .slider-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+        }
+        .speed-val {
+            background: var(--primary); padding: 2px 10px; border-radius: 10px; font-size: 14px; font-weight: bold; transition: background 0.3s;
+        }
+        input[type=range] { width: 100%; accent-color: var(--primary); cursor: pointer; transition: accent-color 0.3s; }
+
+        select {
+            width: 100%; padding: 12px; border-radius: 10px; background-color: var(--bg-color);
+            border: 1px solid #334155; color: var(--text-main); font-size: 15px;
+            outline: none; cursor: pointer; appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;
+            transition: background-color 0.3s;
+        }
+        select:focus { border-color: var(--primary); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2 id="appTitle">🎮 Gyro Controller</h2>
+            <p id="modeDesc">โหมด: Air Mouse ปกติ</p>
+        </div>
+
+        <div class="status-badge">
+            <div id="ledIndicator" class="led"></div>
+            <span id="statusText">รอการเชื่อมต่อ...</span>
+        </div>
+        
+        <button id="connectBtn">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 7l-5-5-5 5M17 17l-5 5-5-5"></path></svg>
+            เชื่อมต่อ Bluetooth
+        </button>
+
+        <!-- เพิ่มปุ่ม Disconnect และ Toggle Mode ให้แสดงผล -->
+        <button id="disconnectBtn" style="display: none;">
+            🔌 ตัดการเชื่อมต่อ (Disconnect)
+        </button>
+
+        <button id="toggleModeBtn" style="display: none;">
+            ⚔️ สลับโหมด: เข้าสู่ Chivalry 2 Combat
+        </button>
+        
+        <div id="settingsArea">
+            <div class="input-group">
+                <div class="slider-header">
+                    <label>⚡ ความเร็ว Air Mouse</label>
+                    <span id="speedValueDisplay" class="speed-val">10</span>
+                </div>
+                <input type="range" id="speedSlider" value="10" min="1" max="50">
+            </div>
+
+            <div class="input-group">
+                <div class="slider-header">
+                    <label>🎯 ความไว Joystick</label>
+                    <span id="joySpeedValueDisplay" class="speed-val">12</span>
+                </div>
+                <input type="range" id="joySpeedSlider" value="12" min="1" max="30">
+            </div>
+
+            <div class="input-group">
+                <label>🕹️ ปุ่มซ้าย (GPIO 26):</label>
+                <select id="leftBtnMap">
+                    <option value="1" selected>🖱️ คลิกซ้าย (Left Click)</option>
+                    <option value="2">🖱️ คลิกขวา (Right Click)</option>
+                    <option value="3">🖱️ คลิกกลาง (Middle Click)</option>
+                    <option value="4">⏩ ไปข้างหน้า (Forward)</option>
+                    <option value="5">⏪ ย้อนกลับ (Back)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>🕹️ ปุ่มขวา (GPIO 25):</label>
+                <select id="rightBtnMap">
+                    <option value="1">🖱️ คลิกซ้าย (Left Click)</option>
+                    <option value="2" selected>🖱️ คลิกขวา (Right Click)</option>
+                    <option value="3">🖱️ คลิกกลาง (Middle Click)</option>
+                    <option value="4">⏩ ไปข้างหน้า (Forward)</option>
+                    <option value="5">⏪ ย้อนกลับ (Back)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>🕹️ ปุ่ม Joystick (GPIO 27):</label>
+                <select id="joySwBtnMap">
+                    <option value="1">🖱️ คลิกซ้าย (Left Click)</option>
+                    <option value="2">🖱️ คลิกขวา (Right Click)</option>
+                    <option value="3" selected>🖱️ คลิกกลาง (Middle Click)</option>
+                    <option value="4">⏩ ไปข้างหน้า (Forward)</option>
+                    <option value="5">⏪ ย้อนกลับ (Back)</option>
+                </select>
+            </div>
+
+            <button id="sendBtn">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                บันทึกการตั้งค่าลง ESP32
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const SERVICE_UUID = '12345678-1234-5678-1234-56789abcdef0'; 
+        const CHARACTERISTIC_UUID = 'abcdef01-1234-5678-1234-56789abcdef0';
+
+        let bleDevice;
+        let bleCharacteristic;
+        let isChivMode = false;
+
+        const statusText = document.getElementById('statusText');
+        const ledIndicator = document.getElementById('ledIndicator');
+        const settingsArea = document.getElementById('settingsArea');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValueDisplay = document.getElementById('speedValueDisplay');
+        const joySpeedSlider = document.getElementById('joySpeedSlider');
+        const joySpeedValueDisplay = document.getElementById('joySpeedValueDisplay');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const toggleModeBtn = document.getElementById('toggleModeBtn');
+        const modeDesc = document.getElementById('modeDesc');
+
+        speedSlider.addEventListener('input', (e) => speedValueDisplay.innerText = e.target.value);
+        joySpeedSlider.addEventListener('input', (e) => joySpeedValueDisplay.innerText = e.target.value);
+
+        function updateTheme() {
+            if (isChivMode) {
+                document.body.classList.add('chiv-mode');
+                modeDesc.innerText = '⚔️ โหมด: Chivalry 2 Combat (โทนร้อน)';
+                toggleModeBtn.innerText = '🛡️ สลับโหมด: กลับสู่ Air Mouse ปกติ';
+            } else {
+                document.body.classList.remove('chiv-mode');
+                modeDesc.innerText = '✨ โหมด: Air Mouse ปกติ';
+                toggleModeBtn.innerText = '⚔️ สลับโหมด: เข้าสู่ Chivalry 2 Combat';
+            }
+        }
+
+        function setUIState(state) {
+            ledIndicator.className = 'led'; 
+            if (state === 'connecting') {
+                ledIndicator.classList.add('connecting'); 
+                statusText.innerText = 'กำลังค้นหาและเชื่อมต่อ...'; 
+                connectBtn.disabled = true;
+            } else if (state === 'connected') {
+                ledIndicator.classList.add('connected'); 
+                statusText.innerText = 'เชื่อมต่อ ESP32 สำเร็จแล้ว';
+                connectBtn.style.display = 'none'; 
+                disconnectBtn.style.display = 'block';
+                toggleModeBtn.style.display = 'block';
+                settingsArea.classList.add('active');
+            } else {
+                statusText.innerText = 'ขาดการเชื่อมต่อ'; 
+                connectBtn.disabled = false;
+                connectBtn.style.display = 'block'; 
+                disconnectBtn.style.display = 'none';
+                toggleModeBtn.style.display = 'none';
+                settingsArea.classList.remove('active');
+                isChivMode = false;
+                updateTheme();
+            }
+        }
+
+        // ปุ่มเชื่อมต่อ Bluetooth
+        connectBtn.addEventListener('click', async () => {
+            try {
+                setUIState('connecting');
+                bleDevice = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [SERVICE_UUID] });
+                const server = await bleDevice.gatt.connect();
+                const service = await server.getPrimaryService(SERVICE_UUID);
+                bleCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+                
+                setUIState('connected');
+                
+                bleDevice.addEventListener('gattserverdisconnected', () => { 
+                    setUIState('disconnected'); 
+                    bleCharacteristic = null; 
+                });
+            } catch (error) {
+                setUIState('disconnected'); 
+                statusText.innerText = 'ยกเลิก / เชื่อมต่อล้มเหลว'; 
+                console.error(error);
+            }
+        });
+
+        // ปุ่มตัดการเชื่อมต่อ (Disconnect)
+        disconnectBtn.addEventListener('click', () => {
+            if (bleDevice && bleDevice.gatt.connected) {
+                bleDevice.gatt.disconnect();
+            }
+            setUIState('disconnected');
+            bleCharacteristic = null;
+        });
+
+        // ปุ่มสลับโหมด (Toggle Mode)
+        toggleModeBtn.addEventListener('click', async () => {
+            isChivMode = !isChivMode;
+            updateTheme();
+
+            if (bleCharacteristic) {
+                try {
+                    let speed = parseInt(speedSlider.value);
+                    let leftMap = parseInt(document.getElementById('leftBtnMap').value);
+                    let rightMap = parseInt(document.getElementById('rightBtnMap').value);
+                    let joySpeed = parseInt(joySpeedSlider.value);
+                    let joySwMap = parseInt(document.getElementById('joySwBtnMap').value);
+
+                    const data = new Uint8Array([speed, leftMap, rightMap, joySpeed, joySwMap, isChivMode ? 1 : 0]);
+                    await bleCharacteristic.writeValue(data);
+                } catch (error) {
+                    console.error('ส่งสถานะโหมดไม่สำเร็จ:', error);
+                }
+            }
+        });
+
+        // ปุ่มบันทึกการตั้งค่า
+        document.getElementById('sendBtn').addEventListener('click', async () => {
+            if (!bleCharacteristic) return;
+
+            let speed = parseInt(speedSlider.value);
+            let leftMap = parseInt(document.getElementById('leftBtnMap').value);
+            let rightMap = parseInt(document.getElementById('rightBtnMap').value);
+            let joySpeed = parseInt(joySpeedSlider.value);
+            let joySwMap = parseInt(document.getElementById('joySwBtnMap').value);
+
+            try {
+                const sendBtn = document.getElementById('sendBtn');
+                const originalText = sendBtn.innerHTML;
+                sendBtn.innerHTML = 'กำลังบันทึก...'; 
+                sendBtn.disabled = true;
+
+                const data = new Uint8Array([speed, leftMap, rightMap, joySpeed, joySwMap, isChivMode ? 1 : 0]);
+                await bleCharacteristic.writeValue(data);
+                
+                setTimeout(() => {
+                    sendBtn.innerHTML = '✔️ บันทึกสำเร็จ!';
+                    setTimeout(() => { sendBtn.innerHTML = originalText; sendBtn.disabled = false; }, 2000);
+                }, 300);
+            } catch (error) {
+                alert('ส่งข้อมูลไม่สำเร็จ: ' + error.message); 
+                document.getElementById('sendBtn').disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
